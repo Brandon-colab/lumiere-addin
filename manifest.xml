@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+  xsi:type="MailApp">
+
+  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Cordan Beverages CC</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Lumiere Email Attach"/>
+  <Description DefaultValue="Attaches statements and invoices from your Email Directory sheet into Outlook compose window."/>
+  <IconUrl DefaultValue="https://Brandon-colab.github.io/lumiere-addin/icon.png"/>
+  <HighResolutionIconUrl DefaultValue="https://Brandon-colab.github.io/lumiere-addin/icon.png"/>
+  <SupportUrl DefaultValue="https://Brandon-colab.github.io/lumiere-addin/"/>
+
+  <AppDomains>
+    <AppDomain>https://Brandon-colab.github.io</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.8"/>
+    </Sets>
+  </Requirements>
+
+  <FormSettings>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://Brandon-colab.github.io/lumiere-addin/addin.html"/>
+        <RequestedHeight>220</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <Permissions>ReadWriteItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+  </Rule>
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
+
+</OfficeApp>

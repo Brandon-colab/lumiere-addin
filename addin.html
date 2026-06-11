@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Lumiere Email Add-in</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#0F2035;color:#fff;margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.card{background:#162840;border-radius:12px;padding:24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);}
+.logo{font-size:22px;font-weight:700;color:#25C090;margin-bottom:4px;}
+.sub{font-size:12px;color:#8FA3B8;margin-bottom:20px;}
+.status{font-size:13px;color:#fff;background:#1D3350;border-radius:8px;padding:12px 16px;line-height:1.6;min-height:48px;}
+.status.success{background:#0F6E52;color:#fff;}
+.status.error{background:#DC2626;color:#fff;}
+.status.loading{color:#FCD34D;}
+.btn{display:block;width:100%;padding:11px;border-radius:8px;border:none;background:#1D9E75;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s;}
+.btn:hover{background:#25C090;}
+.btn:disabled{background:#1D3350;color:#8FA3B8;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">📧 Lumière Beverages</div>
+  <div class="sub">Email Directory Add-in</div>
+  <div class="status loading" id="status">Initialising add-in...</div>
+  <button class="btn" id="attachBtn" disabled onclick="attachFiles()">Attach Files</button>
+</div>
+
+<script>
+let emailData = null;
+
+// Safe initialisation — Office.js only exists when running inside Outlook
+if(typeof Office !== 'undefined'){
+  Office.onReady(function(info){
+    if(info.host === Office.HostType.Outlook){
+      loadFromStorage();
+    } else {
+      setStatus('This add-in only works inside Outlook.','error');
+    }
+  });
+} else {
+  // Running in a plain browser — show friendly message instead of crashing
+  document.addEventListener('DOMContentLoaded', function(){
+    setStatus('⚠️ This file only works when loaded inside Outlook as an add-in. Do not open it directly in a browser — upload it to GitHub Pages and install via Outlook.','error');
+    document.getElementById('attachBtn').disabled = true;
+  });
+}
+
+function loadFromStorage(){
+  try{
+    // Read data written by the Email Directory sheet
+    const raw = localStorage.getItem('lumiere_email_payload');
+    if(!raw){
+      setStatus('No email data found. Click an email address in your Email Directory sheet first, then return here.', '');
+      return;
+    }
+    emailData = JSON.parse(raw);
+    const hasStmt = emailData.stmt && emailData.stmt.fileData;
+    const hasInv  = emailData.inv  && emailData.inv.fileData;
+    const fileCount = (hasStmt?1:0) + (hasInv?1:0);
+
+    let msg = '✅ Ready to attach for: <strong>' + (emailData.company||'') + '</strong><br/>';
+    if(hasStmt) msg += '📄 Statement: ' + emailData.stmt.fileName + '<br/>';
+    if(hasInv)  msg += '🧾 Invoice: '   + emailData.inv.fileName  + '<br/>';
+    if(fileCount === 0) msg = '⚠️ No files attached to this record. Add files in the sheet first.';
+
+    document.getElementById('status').innerHTML = msg;
+    document.getElementById('status').className = 'status success';
+    if(fileCount > 0){
+      document.getElementById('attachBtn').disabled = false;
+      document.getElementById('attachBtn').textContent = 'Attach ' + fileCount + ' File(s) to This Email';
+    }
+  } catch(e){
+    setStatus('Error reading email data: ' + e.message, 'error');
+  }
+}
+
+function attachFiles(){
+  if(!emailData) return;
+  const btn = document.getElementById('attachBtn');
+  btn.disabled = true;
+  btn.textContent = 'Attaching...';
+
+  const item = Office.context.mailbox.item;
+  const files = [];
+  if(emailData.stmt && emailData.stmt.fileData) files.push(emailData.stmt);
+  if(emailData.inv  && emailData.inv.fileData)  files.push(emailData.inv);
+
+  attachNext(item, files, 0, function(err){
+    if(err){
+      setStatus('Error attaching files: ' + err, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Retry';
+    } else {
+      setStatus('✅ ' + files.length + ' file(s) attached successfully! You can close this panel and send your email.', 'success');
+      btn.textContent = 'Done ✓';
+      // Clear the payload so it does not re-apply next time
+      localStorage.removeItem('lumiere_email_payload');
+    }
+  });
+}
+
+function attachNext(item, files, index, callback){
+  if(index >= files.length){ callback(null); return; }
+  const f = files[index];
+  // Extract base64 from data URL
+  const base64 = f.fileData.split(',')[1];
+  item.addFileAttachmentFromBase64Async(
+    base64,
+    f.fileName,
+    { asyncContext: index },
+    function(result){
+      if(result.status === Office.AsyncResultStatus.Failed){
+        callback(result.error.message);
+      } else {
+        attachNext(item, files, index + 1, callback);
+      }
+    }
+  );
+}
+
+function setStatus(msg, type){
+  const el = document.getElementById('status');
+  el.innerHTML = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+</script>
+</body>
+</html>
